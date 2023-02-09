@@ -1,11 +1,11 @@
 # slam-navigation notebook
-#1.坐标变换与坐标系变换
-#2.TEB参数调整
+# 1.坐标变换与坐标系变换
+# 2.TEB参数调整
 TebLocalPlannerROS:
   odom_topic: odom
   map_frame: map
 
-  # Trajectory
+  ##  Trajectory
   teb_autosize: True
   dt_ref: 0.3
   dt_hysteresis: 0.1
@@ -29,7 +29,7 @@ TebLocalPlannerROS:
 
 
 
-  # Robot
+  ##  Robot
   max_vel_x: 1.0
   max_vel_x_backwards: 0.5
   max_vel_theta: 3.14
@@ -41,11 +41,11 @@ TebLocalPlannerROS:
   wheelbase: 0.0 # not used, is differential
   cmd_angle_instead_rotvel: false # not used, is differential
   footprint_model: # types: "point", "circular", "two_circles", "line", "polygon"
-#    type: "circular"
-#    radius: 0.5 # for type "circular"
-#    type: "line"
-#    line_start: [-0.0545, 0.0] # for type "line"
-#    line_end: [0.0545, 0.0] # for type "line"
+#type: "circular"
+#radius: 0.5 # for type "circular"
+#type: "line"
+#line_start: [-0.0545, 0.0] # for type "line"
+#line_end: [0.0545, 0.0] # for type "line"
     #front_offset: 0.2 # for type "two_circles"
     #front_radius: 0.2 # for type "two_circles"
     #rear_offset: 0.2 # for type "two_circles"
@@ -56,14 +56,14 @@ TebLocalPlannerROS:
 我们使用全向移动机器人（完整模型），所以需要配置y方向的速度与加速度，并且“min_turning_radius”最小转弯半径设置为0；
 另外“footprint_model”参数用于配置在优化过程中使用的机器人模型（主要是在计算障碍物距离的过程中），有"point", “circular”, “two_circles”, “line”, "polygon"这几种可选，针对每一种模型都有不同的障碍物距离计算方法，其中"point"模型是最简单的，但准确度也最低，"polygon"多边形模型最复杂，完全考虑到机器人的轮廓形状，计算准确度最高。我们这里选择"polygon"模型，然后需要设置多边形的几何参数（多边形的每一个顶点坐标），与move_base中costmap使用的几何参数一致。
 
-  # GoalTolerance
+  ##  GoalTolerance
   xy_goal_tolerance: 0.1
   yaw_goal_tolerance: 0.05
   free_goal_vel: False
 
 “GoalTolerance”部分的参数设置机器人停止运行的容差，根据实际情况调整。其中“free_goal_vel”参数设置机器人在目标点速度的情况，Fasle为默认最终速度为0，即到目标位置的时候应该是保持静止状态。
 
-  # Obstacles
+  ##  Obstacles
   min_obstacle_dist: 0.05 # minimum distance to obstacle: it depends on the footprint_model
   inflation_dist: 0.0 # greater than min_obstacle_dist to take effect
   include_costmap_obstacles: True # use the local costmap
@@ -72,10 +72,10 @@ TebLocalPlannerROS:
   obstacle_poses_affected: 30 # unused if legacy_obstacle_association is false
   obstacle_association_force_inclusion_factor: 10.0 # the obstacles that will be taken into account are those closer than min_obstacle_dist*factor, if legacy is false
   obstacle_association_cutoff_factor: 40.0 # the obstacles that are further than min_obstacle_dist * factor will not be taken into account, if legacy is false
-#  costmap_converter_plugin: "costmap_converter::CostmapToPolygonsDBSMCCH"
+  #costmap_converter_plugin: "costmap_converter::CostmapToPolygonsDBSMCCH"
   #costmap_converter_plugin: "costmap_converter::CostmapToLinesDBSRANSAC"
   #costmap_converter_plugin: "costmap_converter::CostmapToLinesDBSMCCH"
-#  costmap_converter_plugin: "costmap_converter::CostmapToPolygonsDBSConcaveHull"
+  #costmap_converter_plugin: "costmap_converter::CostmapToPolygonsDBSConcaveHull"
   costmap_converter_plugin: "" # deactivate plugin
   costmap_converter_spin_thread: True
   costmap_converter_rate: 10
@@ -87,7 +87,7 @@ TebLocalPlannerROS:
 距离大于min_obstacle_dist * obstacle_association_cutoff_factor的“障碍物点”被直接抛弃不再考虑，
 然后在剩余的障碍物点中计算机器人左侧最小距离和右侧最小距离。这三个参数的设置非常重要，需要根据机器人的外形尺寸小心调整，否则极易出现狭窄空间机器人无法通过或优化不收敛的情况。
 
-  # Optimization
+  ##  Optimization
   no_inner_iterations: 5
   no_outer_iterations: 4
   optimization_activate: True # optimize
@@ -110,6 +110,6 @@ TebLocalPlannerROS:
   weight_adapt_factor: 2 # factor to multiply some weights (currently only weight_obstacle) at each iteration (gives better results than a huge value for the weight)
 “Optimization”部分的参数主要是设置优化框架中各部分的权重大小，其中“weight_kinematics_nh”参数应设置较小值，因为我们是完整约束机器人无需限制其运动学约束。
 
-  # Homotopy Class Planner
+  ##  Homotopy Class Planner
   enable_homotopy_class_planning: False # currently not used
 
