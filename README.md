@@ -1,24 +1,86 @@
 # slam-navigation notebook
 # 1.坐标变换与坐标系变换
-# 2.TEB参数调整
+# 2.move_base参数配置
+## 2.1 costmap_common_params.yaml
+该文件被global_costmap、local_costmap共同使用。
+#---standard pioneer footprint---
+#---(in meters)---
+#robot_radius: 0.3#如果机器人是圆形，则指定机器人的半径；
+footprint: [[-0.1,-0.10],[0.5,-0.10],[0.5,0.10],[-0.1,0.10]] #如果机器人非圆形，则指定机器人的轮廓；坐标原点为驱动电机处？
+
+transform_tolerance: 0.2
+map_type: costmap    #地图类型；
+#障碍物层的参数配置
+obstacle_layer:
+ enabled: true   #使能障碍物层；
+ obstacle_range: 15.0 # the range limit of 2d lasers# 添加障碍物范围，一方面考虑激光范围，另外范围越大越耗计算资源；
+ raytrace_range: 15.0#清除障碍物范围；
+ inflation_radius: 0.1
+ track_unknown_space: true #true 禁止全局路径规划穿越未知区域；
+ combination_method: 1
+#max_obstacle_height:  0.6 #考虑的最大障碍物高度；
+
+ observation_sources: laser_scan_sensor#数据源；
+ laser_scan_sensor: {
+  data_type: LaserScan, #scan数据类型；
+  topic: merged_scan,#scan的话题名称；
+  clearing: true, #是否根据scan清除障碍物；
+  #observation_persistence: 0.0,
+  inf_is_valid: true#scan的无穷远数据是否有效；
+  }
+#point_cloud2_sensor: {data_type: PointCloud2, topic: rslidar_points, marking: true, clearing: true, max_obstacle_height: 1.8, min_obstacle_height: 0.5}
+
+inflation_layer:
+  enabled:              true #是否使能膨胀层
+  cost_scaling_factor:  10.0  # exponential rate at which the obstacle cost drops off (default: 10)#膨胀层的指数衰减速度，值越小衰减越慢(default: 10)；表示远离障碍物时，代价值的衰减系数
+  inflation_radius:     0.1  # max. distance from an obstacle at which costs are incurred for planning paths.#最大有效膨胀半径，即安装指数衰减扩张的最大半径，计算障碍物cos函数时使用。
+
+static_layer:
+  enabled:              true#是否使用静态层；
+  map_topic:            "/map"
+
+## 2.2 local_costmap_params.yaml
+local_costmap:
+  global_frame: map     #全局坐标系
+  robot_base_frame: base_link    #机器人坐标系
+  update_frequency: 5.0    #局部代价地图的更新频率（内部计算使用）
+  publish_frequency: 5.0   #局部代价地图的发布频率 （Rviz显示使用）；
+  static_map: false # if using only static map# 是否为静态地图属性，代价地图为动态，设置为否；
+  rolling_window: true   #是否位滚动窗口（随着机器人移动而滑动）；
+  width: 10.0  #宽度；
+  height: 10.0  #高度（长度）；
+  resolution: 0.1   #栅格地图分辨率；
+  transform_tolerance: 0.5    #0.5  订阅tf时的时间差冗余量；
+  # footprint: [[-0.28,-0.33],[1.12,-0.33],[1.12,0.33],[-0.28,0.33]]
+  
+  plugins:  #局部代价地图使用的地图插件（顺序颠倒会影响效果）
+   - {name: static_layer,        type: "costmap_2d::StaticLayer"}
+   - {name: obstacle_layer,      type: "costmap_2d::ObstacleLayer"}
+   - {name: inflation_layer,     type: "costmap_2d::InflationLayer"}
+
+
+
+# 3.TEB参数调整
+https://blog.csdn.net/zz123456zzss/article/details/104692548
+https://blog.csdn.net/weixin_44917390/article/details/107568507
 TebLocalPlannerROS:
   odom_topic: odom
   map_frame: map
 
   ##  Trajectory
-  teb_autosize: True
-  dt_ref: 0.3
-  dt_hysteresis: 0.1
+  teb_autosize: True#优化期间允许改变轨迹的时域长度
+  dt_ref: 0.3#局部路径规划的解析度
+  dt_hysteresis: 0.1#允许改变的时域解析度的浮动范围， 一般为 dt_ref 的 10% 左右; 
   min_samples: 3
-  global_plan_overwrite_orientation: True
+  global_plan_overwrite_orientation: True#覆盖全局路径中局部路径点的朝向
   global_plan_viapoint_sep: 0.3 # negative, do not use viapoints. positive, use them. the actual value does not matter
   max_global_plan_lookahead_dist: 1.5
   global_plan_prune_distance: 0.6
-  force_reinit_new_goal_dist: 1.0
+  force_reinit_new_goal_dist: 1.0#如果上一个目标的间隔超过指定的米数（跳过热启动），则强制规划器重新初始化轨迹
   feasibility_check_no_poses: 3
-  publish_feedback: false
-  allow_init_with_backwards_motion: true
-  exact_arc_length: false
+  publish_feedback: false#发布包含完整轨迹和活动障碍物列表的规划器反馈
+  allow_init_with_backwards_motion: true#允许在开始时先后退来执行轨迹
+  exact_arc_length: false#如果为真，规划器在速度、加速度和转弯率计算中使用精确的弧长[->增加的CPU时间]，否则使用欧几里德近似
   shrink_horizon_backup: true
   shrink_horizon_min_duration: 10
 其中“Trajectory”部分的参数用于调整轨迹，
@@ -37,7 +99,7 @@ TebLocalPlannerROS:
   acc_lim_y: 0.5
   acc_lim_x: 0.5
   acc_lim_theta: 1.57
-  min_turning_radius: 0.0
+  min_turning_radius: 0.0#车类机器人的最小转弯半径
   wheelbase: 0.0 # not used, is differential
   cmd_angle_instead_rotvel: false # not used, is differential
   footprint_model: # types: "point", "circular", "two_circles", "line", "polygon"
@@ -57,15 +119,15 @@ TebLocalPlannerROS:
 另外“footprint_model”参数用于配置在优化过程中使用的机器人模型（主要是在计算障碍物距离的过程中），有"point", “circular”, “two_circles”, “line”, "polygon"这几种可选，针对每一种模型都有不同的障碍物距离计算方法，其中"point"模型是最简单的，但准确度也最低，"polygon"多边形模型最复杂，完全考虑到机器人的轮廓形状，计算准确度最高。我们这里选择"polygon"模型，然后需要设置多边形的几何参数（多边形的每一个顶点坐标），与move_base中costmap使用的几何参数一致。
 
   ##  GoalTolerance
-  xy_goal_tolerance: 0.1
-  yaw_goal_tolerance: 0.05
+  xy_goal_tolerance: 0.1#目标 xy 偏移容忍度
+  yaw_goal_tolerance: 0.05#目标 角度 偏移容忍度
   free_goal_vel: False
 
 “GoalTolerance”部分的参数设置机器人停止运行的容差，根据实际情况调整。其中“free_goal_vel”参数设置机器人在目标点速度的情况，Fasle为默认最终速度为0，即到目标位置的时候应该是保持静止状态。
 
   ##  Obstacles
-  min_obstacle_dist: 0.05 # minimum distance to obstacle: it depends on the footprint_model
-  inflation_dist: 0.0 # greater than min_obstacle_dist to take effect
+  min_obstacle_dist: 0.05 # minimum distance to obstacle: it depends on the footprint_model和障碍物最小距离
+  inflation_dist: 0.0 # greater than min_obstacle_dist to take effect障碍物膨胀距离
   include_costmap_obstacles: True # use the local costmap
   costmap_obstacles_behind_robot_dist: 1.0 # distance at which obstacles behind the robot are taken into account
   legacy_obstacle_association: false
