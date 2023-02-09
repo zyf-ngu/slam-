@@ -1,5 +1,19 @@
 # slam-navigation notebook
 # 1.坐标变换与坐标系变换
+   在SLAM中经常用到空间点的坐标变换。假设已获得相机某一位置在世界坐标系下的位姿poseT，pose包括相机坐标系相对于世界坐标系的旋转R和平移t，此时若已知某点p在相机坐标系下的坐标为Pc，计算点P在世界坐标系下的坐标Pw，可使用
+
+Pw=R*Pc+t＝T*Pc
+
+开始的时候我有这样的疑问：T表示世界坐标到相机坐标系的变换，而计算的是点坐标从相机坐标系到世界坐标系的变换结果，为什么可以直接乘呢？而不是反向的旋转的平移？其实是因为点的运动和坐标系的运动是正好相反的，所以点坐标乘上反向的变换矩阵是正好可以计算的。
+
+
+（1）source、target frame是在进行坐标变换时的概念，source是坐标变换的源坐标系，target是目标坐标系。这个时候，这个变换代表的是坐标变换
+（2）parent、child frame是在描述坐标系变换时的概念，parent是原坐标系，child是变换后的坐标系，这个时候这个变换描述的是坐标系变换，也是child坐标系在parent坐标系下的描述。
+（3）a frame到b frame的坐标系变换（frame transform），也表示了b frame在a frame的描述，也代表了把一个点在b frame里坐标变换成在a frame里坐标的坐标变换。
+（4）从parent到child的坐标系变换（frame transform）等同于把一个点从child坐标系向parent坐标系的坐标变换，等于child坐标系在parent frame坐标系的姿态描述。
+
+
+
 # 2.move_base参数配置
 ## 2.1 costmap_common_params.yaml
 该文件被global_costmap、local_costmap共同使用。
