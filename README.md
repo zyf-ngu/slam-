@@ -58,7 +58,116 @@ local_costmap:
    - {name: obstacle_layer,      type: "costmap_2d::ObstacleLayer"}
    - {name: inflation_layer,     type: "costmap_2d::InflationLayer"}
 
+## 2.3 global_costmap_params.yaml
+global_costmap:
+  global_frame: map   #全局坐标系
+  robot_base_frame: base_link    #机器人基准坐标系
+  update_frequency: 1.0  #更新频率（内部计算用）；
+  publish_frequency: 0.25   #发布频率（Rviz显示用）；
+  static_map: true  #是否位静态地图
+ 
+  transform_tolerance: 1.0  #0.5  订阅tf时的时间差冗余量；
+  plugins:#全局代价地图使用的地图插件
+    - {name: static_layer,            type: "costmap_2d::StaticLayer"}
+    - {name: obstacle_layer,          type: "costmap_2d::VoxelLayer"}
+    - {name: inflation_layer,         type: "costmap_2d::InflationLayer"}
 
+## 2.4  dwa-local-planner-para.yaml
+DWAPlannerROS: 
+ 
+### Robot Configuration Parameters - Kobuki 机器人配置参数，这里为Kobuki底座
+  max_vel_x: 0.5  # 0.55 
+  #x方向最大线速度绝对值，单位:米/秒
+  min_vel_x: 0.0  
+  #x方向最小线速度绝对值，单位:米/秒。如果为负值表示可以后退.
+ 
+  max_vel_y: 0.0  # diff drive robot  
+  #y方向最大线速度绝对值，单位:米/秒。turtlebot为差分驱动机器人，所以为0
+  min_vel_y: 0.0  # diff drive robot  
+  #y方向最小线速度绝对值，单位:米/秒。turtlebot为差分驱动机器人，所以为0
+ 
+  max_trans_vel: 0.5 # choose slightly less than the base's capability 
+  #机器人最大平移速度的绝对值，单位为 m/s
+  min_trans_vel: 0.1  # this is the min trans velocity when there is negligible rotational velocity 
+  #机器人最小平移速度的绝对值，单位为 m/s
+  trans_stopped_vel: 0.1 
+  #机器人被认属于“停止”状态时的平移速度。如果机器人的速度低于该值，则认为机器人已停止。单位为 m/s
+  #Warning!
+  #do not set min_trans_vel to 0.0 otherwise dwa will always think translational velocities
+  #are non-negligible and small in place rotational velocities will be created.
+  #注意不要将min_trans_vel设置为0，否则DWA认为平移速度不可忽略，将创建较小的旋转速度。
+  max_rot_vel: 5.0  # choose slightly less than the base's capability #机器人的最大旋转角速度的绝对值，单位为 rad/s 
+  min_rot_vel: 0.4  # this is the min angular velocity when there is negligible translational velocity #机器人的最小旋转角速度的绝对值，单位为 rad/s
+  rot_stopped_vel: 0.4 #机器人被认属于“停止”状态时的旋转速度。单位为 rad/s
+   
+  acc_lim_x: 1.0 # maximum is theoretically 2.0, but we  机器人在x方向的极限加速度，单位为 meters/sec^2
+  acc_lim_theta: 2.0 机器人的极限旋转加速度，单位为 rad/sec^2
+  acc_lim_y: 0.0      # diff drive robot 机器人在y方向的极限加速度，对于差分机器人来说当然是0
+ 
+### Goal Tolerance Parameters 目标距离公差参数
+  yaw_goal_tolerance: 0.3  # 0.05 
+  #到达目标点时，控制器在偏航/旋转时的弧度容差(tolerance)。即：到达目标点时偏行角允许的误差，单位弧度
+  xy_goal_tolerance: 0.15  # 0.10 
+  #到到目标点时，控制器在x和y方向上的容差（tolerence）（米）。即：到达目标点时,在xy平面内与目标点的距离误差
+  #latch_xy_goal_tolerance: false 
+  #设置为true时表示：如果到达容错距离内,机器人就会原地旋转；即使转动是会跑出容错距离外。
+#注：这三个参数的设置及影响讨论请参考《ROS导航功能调优指南》
+ 
+### Forward Simulation Parameters 前向模拟参数
+  sim_time: 1.0       # 1.7 
+  #前向模拟轨迹的时间，单位为s(seconds) 
+  vx_samples: 6       # 3  
+  #x方向速度空间的采样点数.
+  vy_samples: 1       # diff drive robot, there is only one sample
+  #y方向速度空间采样点数.。Tutulebot为差分驱动机器人，所以y方向永远只有1个值（0.0）
+  vtheta_samples: 20  # 20 
+  #旋转方向的速度空间采样点数.
+#注：参数的设置及影响讨论请参考《ROS导航功能调优指南》
+ 
+### Trajectory Scoring Parameters 轨迹评分参数
+  path_distance_bias: 64.0      # 32.0   - weighting for how much it should stick to the global path plan
+  #控制器与给定路径接近程度的权重
+  
+  goal_distance_bias: 24.0      # 24.0   - weighting for how much it should attempt to reach its goal
+  #控制器与局部目标点的接近程度的权重，也用于速度控制
+  
+  occdist_scale: 0.5            # 0.01   - weighting for how much the controller should avoid obstacles
+  #控制器躲避障碍物的程度
+  
+  forward_point_distance: 0.325 # 0.325  - how far along to place an additional scoring point
+  #以机器人为中心，额外放置一个计分点的距离
+  
+  stop_time_buffer: 0.2         # 0.2    - amount of time a robot must stop in before colliding for a valid traj.
+  #机器人在碰撞发生前必须拥有的最少时间量。该时间内所采用的轨迹仍视为有效。即：为防止碰撞,机器人必须提前停止的时间长度
+ 
+  scaling_speed: 0.25           # 0.25   - absolute velocity at which to start scaling the robot's footprint
+  #开始缩放机器人足迹时的速度的绝对值，单位为m/s。
+  #在进行对轨迹各个点计算footprintCost之前，会先计算缩放因子。如果当前平移速度小于scaling_speed，则缩放因子为1.0，否则，缩放因子为(vmag - scaling_speed) / (max_trans_vel - scaling_speed) * max_scaling_factor + 1.0。然后，该缩放因子会被用于计算轨迹中各个点的footprintCost。
+  #参考：https://www.cnblogs.com/sakabatou/p/8297479.html
+  #亦可简单理解为：启动机器人底盘的速度.(Ref.: https://www.corvin.cn/858.html)
+  
+  max_scaling_factor: 0.2       # 0.2    - how much to scale the robot's footprint when at speed.
+  #最大缩放因子。max_scaling_factor为上式的值的大小。
+ 
+### Oscillation Prevention Parameters 振荡预防参数
+  oscillation_reset_dist: 0.05  # 0.05   - how far to travel before resetting oscillation flags
+  #机器人必须运动多少米远后才能复位震荡标记(机器人运动多远距离才会重置振荡标记)
+ 
+### Global Plan Parameters
+  #prune_plan: false
+  #机器人前进是否清除身后1m外的轨迹.
+  
+### Debugging 调试参数
+  publish_traj_pc : true #将规划的轨迹在RVIZ上进行可视化
+  publish_cost_grid_pc: true 
+  #将代价值进行可视化显示
+  #是否发布规划器在规划路径时的代价网格.如果设置为true,那么就会在~/cost_cloud话题上发布sensor_msgs/PointCloud2类型消息.
+  global_frame_id: odom #全局参考坐标系为odom
+ 
+ 
+### Differential-drive robot configuration - necessary? 差分机器人配置参数
+###  holonomic_robot: false 
+   #是否为全向机器人。 值为false时为差分机器人； 为true时表示全向机器人
 
 # 3.TEB参数调整
 https://blog.csdn.net/zz123456zzss/article/details/104692548
@@ -69,7 +178,7 @@ TebLocalPlannerROS:
 
   ##  Trajectory
   teb_autosize: True#优化期间允许改变轨迹的时域长度
-  dt_ref: 0.3#局部路径规划的解析度
+  dt_ref: 0.3#局部路径规划的解析度，参考轨迹的离散间隔
   dt_hysteresis: 0.1#允许改变的时域解析度的浮动范围， 一般为 dt_ref 的 10% 左右; 
   min_samples: 3
   global_plan_overwrite_orientation: True#覆盖全局路径中局部路径点的朝向
@@ -117,6 +226,13 @@ TebLocalPlannerROS:
 “Robot”部分的参数主要是根据机器人的实际情况配置最大速度和最大加速度等，不同模型的机器人（差分驱动、全向移动、阿克曼模型）有不同的配置方法。
 我们使用全向移动机器人（完整模型），所以需要配置y方向的速度与加速度，并且“min_turning_radius”最小转弯半径设置为0；
 另外“footprint_model”参数用于配置在优化过程中使用的机器人模型（主要是在计算障碍物距离的过程中），有"point", “circular”, “two_circles”, “line”, "polygon"这几种可选，针对每一种模型都有不同的障碍物距离计算方法，其中"point"模型是最简单的，但准确度也最低，"polygon"多边形模型最复杂，完全考虑到机器人的轮廓形状，计算准确度最高。我们这里选择"polygon"模型，然后需要设置多边形的几何参数（多边形的每一个顶点坐标），与move_base中costmap使用的几何参数一致。
+footprint：每一个坐标代表机器人上的一点，设置机器人的中心为[0,0]，根据机器人不同的形状，找到机器人各凸出的坐标点即可，具体可参考下图来设置(如果是圆形底盘机器人，直接设置半径大小即可：例如 robot_radius: 0.5)；如果是长方形小车：宽736，长1590
+
+顺时针：footprint:[[0.795, 0.368], [0.795, -0.368], [-0.795, -0.368], [-0.795, 0.368]]
+
+五边形：footprint:[[0.795, 0.368], [0.95, 0], [0.795, -0.368], [-0.795, -0.368], [-0.795, 0.368]]
+
+![Uploading 图片.png…]()
 
   ##  GoalTolerance
   xy_goal_tolerance: 0.1#目标 xy 偏移容忍度
