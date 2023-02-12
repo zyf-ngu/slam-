@@ -11,6 +11,50 @@ Pw=R*Pc+t＝T*Pc
 （2）parent、child frame是在描述坐标系变换时的概念，parent是原坐标系，child是变换后的坐标系，这个时候这个变换描述的是坐标系变换，也是child坐标系在parent坐标系下的描述。
 （3）a frame到b frame的坐标系变换（frame transform），也表示了b frame在a frame的描述，也代表了把一个点在b frame里坐标变换成在a frame里坐标的坐标变换。
 （4）从parent到child的坐标系变换（frame transform）等同于把一个点从child坐标系向parent坐标系的坐标变换，等于child坐标系在parent frame坐标系的姿态描述。
+##  1.2 /map /odom /base_link /base_footprint
+https://blog.csdn.net/czsnooker/article/details/108956659
+(1)map地图坐标系
+一般设该坐标系为固定坐标系（fixed frame），一般与机器人所在的世界坐标系一致。
+(2)base_link机器人本体（基座）坐标系
+     与机器人中心重合，坐标系原点一般为机器人的旋转中心。
+     这里有一个重要默认：move_base默认base_link的z坐标为0。如果在amcl里设置~base_frame_id 为base_footprint那么move_base也默认其z坐标为0。即机器人的在地图中的位置由base_link或base_footprint确定，且被设置为定位坐标的那个Z坐标被设置为0。下面的所有说明我均将base_link设置为定位用的机器人本体坐标系。
+     base_link与base_footprint其中之一应放置在机器人的旋转中心，它们z坐标通常不同，x、y坐标有时不同。旋转中心是指对于机器人原地旋转的圆心（旋转时x、y坐标不变的那个轴上的点），差分轮式的机器人显然可以，麦克阿姆也可以。阿克曼型的应为机器人外形的几何中心。
+
+(3)base_footprint坐标系
+原点为base_link原点在地面的投影，有些许区别（z值不同）。
+(4)odom里程计坐标系
+这里要区分开odom topic，这是两个概念。一个是坐标系，一个是根据编码器（或者视觉等）计算的里程计。但是两者也有关系，odom topic 转化的位姿矩阵是odom–>base_link的tf关系。
+
+这时可有会有疑问，odom和map坐标系是不是重合的？可以很肯定的告诉你，机器人运动开始是重合的。但是，随着时间的推移是不重合的，而出现的偏差就是里程计的累积误差。那map–>odom的tf怎么得到?就是在一些校正传感器合作校正的package比如amcl会给出一个位置估计（localization），这可以得到map–>base_link的tf，所以估计位置和里程计位置的偏差也就是odom与map的坐标系偏差。所以，如果你的odom计算没有错误，那么map–>odom就是相同的。
+
+首先，我们制定机器人路径时，使用的必然是绝对坐标系——
+
+比如我现在让机器人去点（10,10）。
+
+要完成这件事，机器人需要先知道自己在哪。它没有GPS，所以只能倒推——通过里程计。这也是为什么“没有偏移的话odom应该与map重合”，因为odom本来就是用来倒推map的。
+（经评论提醒，特强调，这个“偏移”指的是偏差，误差，而不是位移）
+
+里程计告诉它，自从原点启动起，它在X向上移动2，Y向上移动了5。于是它就认为自己在（2,5）。反馈给base_link，则base_link里原点在（-2,-5），目标在（8,5）。
+
+然而实际上，因为偏移，它的里程计是错的，它其实在（3,4）（map）。
+
+此时，在map，也就是实际上，它在（3,4），但在odom中它在（2,5）。
+它理应运动（7,6）到达目标点，但它会运动（8,5），因为odom反馈给base_link后，在base_link中，目标在（8,5）。
+
+而这时，校正传感器又告诉它了，“我觉得你的里程计刚才X漏算了0.999，Y多算了1.001”。
+
+于是它把自己所在位置修正为了(2.999,3.999)（odom），把目标在base_link中修正到了(7.001,6.001)（base_link）接下来该移动（7.001,6.001）。
+
+以上。
+
+odom←base_link+里程计
++
+校正
+↓
+接近map的坐标系
+
+（5）base_laser激光雷达坐标系
+与激光雷达的安装点有关，其与base_link的tf为固定的。
 
 
 
