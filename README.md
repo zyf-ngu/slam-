@@ -348,4 +348,5 @@ footprint：每一个坐标代表机器人上的一点，设置机器人的中�
 
   ##  Homotopy Class Planner
   enable_homotopy_class_planning: False # currently not used
-
+#  4编程技巧
+要注意Eigen中四元数赋值的顺序，实数w在首；但是实际上它的内部存储顺序是[x y z w]。实际上后面输出系数的时候也是按内部存储顺序输出
